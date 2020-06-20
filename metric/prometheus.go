@@ -61,26 +61,29 @@ func (p *Prometheus) expose(hCh chan *decoder.HEP) {
 		packetsByType.WithLabelValues(pkt.NodeName, pkt.ProtoString).Inc()
 		packetsBySize.WithLabelValues(pkt.NodeName, pkt.ProtoString).Set(float64(len(pkt.Payload)))
 
-		var st, dt string
+		var srcTarget, dstTarget string
 		if pkt.SIP != nil && pkt.ProtoType == 1 {
 			if !p.TargetEmpty {
-				var ok bool
-				st, ok = p.TargetMap[pkt.SrcIP]
-				if ok {
-					methodResponses.WithLabelValues(st, "src", "", pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
+				var srcHit, dstHit bool
+				srcTarget, srcHit = p.TargetMap[pkt.SrcIP]
+				if srcHit {
+					methodResponses.WithLabelValues(srcTarget, "src", "", pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
 
 					if pkt.SIP.ReasonVal != "" && strings.Contains(pkt.SIP.ReasonVal, "850") {
-						reasonCause.WithLabelValues(st, extractXR("cause=", pkt.SIP.ReasonVal), pkt.SIP.FirstMethod).Inc()
+						reasonCause.WithLabelValues(srcTarget, extractXR("cause=", pkt.SIP.ReasonVal), pkt.SIP.FirstMethod).Inc()
 					}
 				}
-				dt, ok = p.TargetMap[pkt.DstIP]
-				if ok {
-					methodResponses.WithLabelValues(dt, "dst", "", pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
+				dstTarget, dstHit = p.TargetMap[pkt.DstIP]
+				if dstHit {
+					methodResponses.WithLabelValues(dstTarget, "dst", "", pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
+				}
+				if !srcHit && !dstHit {
+					methodResponses.WithLabelValues("unknown", "", "", pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
 				}
 			}
 
 			skip := false
-			if dt == "" && st == "" && !p.TargetEmpty {
+			if dstTarget == "" && srcTarget == "" && !p.TargetEmpty {
 				skip = true
 			}
 
@@ -109,20 +112,24 @@ func (p *Prometheus) expose(hCh chan *decoder.HEP) {
 			}
 
 			if !skip && ((pkt.SIP.CseqMethod == invite || pkt.SIP.CseqMethod == register) &&
-				(pkt.SIP.FirstMethod == "180" || pkt.SIP.FirstMethod == "183" || pkt.SIP.FirstMethod == "200")) {
+				(pkt.SIP.FirstMethod == "180" ||
+					pkt.SIP.FirstMethod == "181" ||
+					pkt.SIP.FirstMethod == "182" ||
+					pkt.SIP.FirstMethod == "183" ||
+					pkt.SIP.FirstMethod == "200")) {
 				ptn := pkt.Timestamp.UnixNano()
 				did := []byte(pkt.DstIP + callID)
 				if buf := p.cache.Get(nil, did); buf != nil {
 					d := uint64(ptn) - binary.BigEndian.Uint64(buf)
 
-					if dt == "" {
-						dt = st
+					if dstTarget == "" {
+						dstTarget = srcTarget
 					}
 
 					if pkt.SIP.CseqMethod == invite {
-						srd.WithLabelValues(dt, pkt.NodeName).Set(float64(d))
+						srd.WithLabelValues(dstTarget, pkt.NodeName).Set(float64(d))
 					} else {
-						rrd.WithLabelValues(dt, pkt.NodeName).Set(float64(d))
+						rrd.WithLabelValues(dstTarget, pkt.NodeName).Set(float64(d))
 						p.cache.Del([]byte(callID))
 					}
 					p.cache.Del(did)
@@ -135,15 +142,15 @@ func (p *Prometheus) expose(hCh chan *decoder.HEP) {
 					continue
 				}
 				p.cache.Set(k, nil)
-				methodResponses.WithLabelValues("", "", pkt.NodeName, pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
+				methodResponses.WithLabelValues(pkt.TargetName, "", pkt.NodeName, pkt.SIP.FirstMethod, pkt.SIP.CseqMethod).Inc()
 
 				if pkt.SIP.ReasonVal != "" && strings.Contains(pkt.SIP.ReasonVal, "850") {
-					reasonCause.WithLabelValues(st, extractXR("cause=", pkt.SIP.ReasonVal), pkt.SIP.FirstMethod).Inc()
+					reasonCause.WithLabelValues(srcTarget, extractXR("cause=", pkt.SIP.ReasonVal), pkt.SIP.FirstMethod).Inc()
 				}
 			}
 
 			if pkt.SIP.RTPStatVal != "" {
-				p.dissectXRTPStats(st, pkt.SIP.RTPStatVal)
+				p.dissectXRTPStats(srcTarget, pkt.SIP.RTPStatVal)
 			}
 
 		} else if pkt.ProtoType == 5 {

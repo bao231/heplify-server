@@ -1,12 +1,21 @@
 package rotator
 
 var (
-	droplogmaria      = []string{"DROP TABLE logs_capture_all_{{date}};"}
-	dropreportmaria   = []string{"DROP TABLE report_capture_all_{{date}};"}
-	droprtcpmaria     = []string{"DROP TABLE rtcp_capture_all_{{date}};"}
-	dropcallmaria     = []string{"DROP TABLE sip_capture_call_{{date}};"}
-	dropregistermaria = []string{"DROP TABLE sip_capture_registration_{{date}};"}
-	dropdefaultmaria  = []string{"DROP TABLE sip_capture_rest_{{date}};"}
+	selectlogmaria      = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE 'logs_capture_all_%' and TABLE_NAME < 'logs_capture_all_{{date}}';"
+	selectreportmaria   = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE 'report_capture_all_%' and TABLE_NAME < 'report_capture_all_{{date}}';"
+	selectrtcpmaria     = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE 'rtcp_capture_all_%' and TABLE_NAME < 'rtcp_capture_all_{{date}}';"
+	selectcallmaria     = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE 'sip_capture_call_%' and TABLE_NAME < 'sip_capture_call_{{date}}';"
+	selectregistermaria = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE 'sip_capture_registration_%' and TABLE_NAME < 'sip_capture_registration_{{date}}';"
+	selectdefaultmaria  = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE 'sip_capture_rest_%' and TABLE_NAME < 'sip_capture_rest_{{date}}';"
+)
+
+var (
+	droplogmaria      = "DROP TABLE IF EXISTS {{partName}};"
+	dropreportmaria   = "DROP TABLE IF EXISTS {{partName}};"
+	droprtcpmaria     = "DROP TABLE IF EXISTS {{partName}};"
+	dropcallmaria     = "DROP TABLE IF EXISTS {{partName}};"
+	dropregistermaria = "DROP TABLE IF EXISTS {{partName}};"
+	dropdefaultmaria  = "DROP TABLE IF EXISTS {{partName}};"
 )
 
 var insconfmaria = []string{

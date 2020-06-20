@@ -13,22 +13,32 @@ You have 3 options to get **heplify-server** up and running:
 * Docker [compose](https://github.com/sipcapture/heplify-server/tree/master/docker/hom5-hep-prom-graf)
 * Compile from sources:  
   
+  Install luajit dev libary
+  
+  `apt-get install libluajit-5.1-dev`
+  
+  or 
+  
+  `yum install luajit-devel` 
+  
   [install](https://golang.org/doc/install) Go 1.11+
 
   `go build cmd/heplify-server/heplify-server.go`
+  
+  
 
 ### Requirements
-They depend on which features you want to use and if you use homer5 or homer7 shema. For homer5 you will need MySQL >= 5.7 or MariaDB >= 10. For homer7 you will need PostgreSQL >= 10.
+These depend on which features you want to use and on whether you use homer5 or homer7 schema. For homer5, you need MySQL >= 5.7 or MariaDB >= 10. For homer7 you need PostgreSQL >= 10.
 
 ### Configuration
-**heplify-server** can be configured using command-line flags, environment variables, a local [configuration file](https://github.com/sipcapture/heplify-server/blob/master/example/) or via web form by setting ConfigHTTPAddr  
+**heplify-server** can be configured using command-line flags, environment variables, or a local [configuration file](https://github.com/sipcapture/heplify-server/blob/master/example/) or via web form by setting ConfigHTTPAddr  
 
 ![image](https://user-images.githubusercontent.com/20154956/54483281-ef3f5700-4850-11e9-8da1-9b8bed6186e3.png)
 
-To setup a systemd service use the sample [service file](https://github.com/sipcapture/heplify-server/blob/master/example/) 
-and follow the instructions at the top.
+To set up a systemd service, use the sample [service file](https://github.com/sipcapture/heplify-server/blob/master/example/) 
+and follow the instructions found at the top of the file.
 
-Since version 0.92 its possible to hot reload PromTargetIP and PromTargetName when you change them inside the configuration file.
+Since version 0.92 it is possible to hot reload PromTargetIP and PromTargetName when you change them inside the configuration file.
 ```
 killall -HUP heplify-server
 ```
